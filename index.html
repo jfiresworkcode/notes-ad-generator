@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bearbottom Notes Ad Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a;
+        }
+
+        /* iOS Notes App Specific Styling */
+        .notes-container {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            transition: all 0.3s ease;
+            /* iOS smoothing */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .note-header {
+            font-weight: 800; /* Extra bold for the header */
+            letter-spacing: -0.02em;
+        }
+
+        .note-content {
+            white-space: pre-wrap;
+            line-height: 1.6; /* Increased spacing matching screenshot */
+            letter-spacing: -0.015em; /* Tighter tracking typical of SF Pro */
+        }
+
+        /* Hide scrollbar for cleaner screenshot */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #4b5563;
+            border-radius: 2px;
+        }
+        input[type=range]:focus {
+            outline: none; 
+        }
+
+        /* Scrollable Sidebar */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row items-start justify-center p-8 gap-12">
+
+    <!-- Controls -->
+    <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 w-full max-w-sm shrink-0 sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto sidebar-scroll">
+        <div class="p-6">
+            <h1 class="text-white text-xl font-bold mb-6 border-b border-white/20 pb-4">Ad Generator</h1>
+            
+            <!-- Format Selector -->
+            <div class="mb-6">
+                <label class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 block">1. Dimensions</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setFormat('feed')" id="btn-fmt-feed" class="px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium transition">
+                        Feed (4:5)<br><span class="text-[10px] opacity-75">1080x1350</span>
+                    </button>
+                    <button onclick="setFormat('story')" id="btn-fmt-story" class="px-3 py-2 bg-gray-700 text-white rounded text-sm font-medium transition">
+                        Story (9:16)<br><span class="text-[10px] opacity-75">1080x1920</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Theme Selector -->
+            <div class="mb-6">
+                <label class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 block">2. Theme</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setTheme('dark')" id="btn-theme-dark" class="px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium transition flex items-center justify-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-black border border-white"></div> Dark
+                    </button>
+                    <button onclick="setTheme('light')" id="btn-theme-light" class="px-3 py-2 bg-gray-700 text-white rounded text-sm font-medium transition flex items-center justify-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-white"></div> Light
+                    </button>
+                </div>
+            </div>
+
+            <!-- Text Size Selector -->
+            <div class="mb-6">
+                <label class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 block">3. Text Size</label>
+                
+                <!-- Title Slider -->
+                <div class="mb-3">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-xs text-gray-400">Title Size</span>
+                        <span id="title-size-display" class="text-xs text-blue-400 font-mono">22px</span>
+                    </div>
+                    <div class="flex items-center gap-3 bg-gray-700/50 p-2 rounded-lg border border-white/10">
+                        <span class="text-white text-[10px] font-medium">Aa</span>
+                        <input type="range" min="12" max="48" value="22" id="title-size-slider" oninput="setTitleSize(this.value)" class="w-full">
+                        <span class="text-white text-sm font-bold">Aa</span>
+                    </div>
+                </div>
+
+                <!-- Body Slider -->
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <span class="text-xs text-gray-400">Body Size</span>
+                        <span id="body-size-display" class="text-xs text-blue-400 font-mono">17px</span>
+                    </div>
+                    <div class="flex items-center gap-3 bg-gray-700/50 p-2 rounded-lg border border-white/10">
+                        <span class="text-white text-[10px] font-medium">Aa</span>
+                        <input type="range" min="12" max="32" value="17" id="body-size-slider" oninput="setBodySize(this.value)" class="w-full">
+                        <span class="text-white text-sm font-bold">Aa</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Text Editor -->
+            <div>
+                <label class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3 block border-t border-white/20 pt-3">4. Edit Text</label>
+                
+                <div class="mb-4">
+                    <label class="text-xs text-gray-500 mb-1 block uppercase font-semibold">Title (Header)</label>
+                    <input type="text" id="input-header" oninput="handleInput()" class="w-full bg-gray-800 text-white text-sm p-3 rounded-lg border border-white/10 focus:border-blue-500 focus:outline-none placeholder-gray-600 transition" placeholder="Enter header text...">
+                </div>
+
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block uppercase font-semibold">Body Text</label>
+                    <textarea id="input-body" oninput="handleInput()" rows="8" class="w-full bg-gray-800 text-white text-sm p-3 rounded-lg border border-white/10 focus:border-blue-500 focus:outline-none placeholder-gray-600 transition resize-y" placeholder="Enter body text..."></textarea>
+                </div>
+            </div>
+
+             <!-- Download Button -->
+             <div class="mt-6 pt-6 border-t border-white/20">
+                <button onclick="downloadAd()" class="w-full py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold shadow-lg transition flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    Download Image (PNG)
+                </button>
+                <p class="text-center text-gray-400 text-[10px] mt-2">Downloads clean, borderless image for ads</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Area -->
+    <div class="flex-1 flex justify-center items-center w-full min-h-[80vh] relative">
+        
+        <!-- Device Simulator -->
+        <div id="ad-container" class="relative w-full shadow-2xl overflow-hidden notes-container flex flex-col transition-all duration-500 border-4 border-gray-800 rounded-[2rem]">
+            
+            <!-- Status Bar Placeholder -->
+            <div id="status-bar" class="h-8 w-full shrink-0"></div>
+
+            <!-- Notes Header -->
+            <div id="notes-header" class="flex items-center justify-between px-6 py-2 shrink-0">
+                <div class="flex items-center gap-1 text-[#FFD60A]">
+                    <!-- Back Arrow -->
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                </div>
+                <div class="flex items-center gap-6">
+                    <!-- Share Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#FFD60A" class="w-6 h-6 transform -scale-x-100">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
+                    </svg>
+                    <!-- Ellipsis Icon -->
+                    <div class="w-7 h-7 rounded-full border border-[#FFD60A] flex items-center justify-center">
+                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#FFD60A" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                        </svg>
+                    </div>
+                    <!-- Done Icon (Yellow Circle Checkmark) -->
+                     <div class="w-7 h-7 rounded-full bg-[#FFD60A] flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4 text-black">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                     </div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div id="notes-body" class="px-6 pt-4 pb-12 overflow-y-auto no-scrollbar flex-1">
+                <h1 id="header-text" class="note-header mb-6 tracking-tight uppercase">MESSAGE FROM OUR FOUNDER:</h1>
+                
+                <div id="body-text" class="note-content font-normal leading-relaxed">
+                    <!-- Content injected via JS -->
+                </div>
+            </div>
+
+            <!-- Bottom Toolbar Mockup -->
+            <div id="notes-footer" class="h-12 w-full shrink-0 flex items-center justify-center gap-12 text-gray-500">
+                 <!-- Simple footer icons placeholder -->
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 opacity-50">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 opacity-50">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                </svg>
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 opacity-50">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const initialText = {
+            header: "MESSAGE FROM OUR FOUNDER:",
+            body: `I know it might feel early to be talking about swim trunks, but that’s exactly why we’re doing this.
+
+Usually, everyone waits until the first heatwave (or the day before a trip) to scramble for gear. We wanted to help you beat the rush this year.
+
+We call this our Land & Sea lineup because these styles—especially the Volley and Stretch Swim—are built for days that start on land and end in the water.
+
+To kick off the warm-weather season, if you grab any 2 items from this collection, you’ll get 20% off. We’re only keeping this live for one week (ending 3/9).
+
+Get your closet ready now so you can just enjoy the sun later.
+
+– Robert Felder, Founder`
+        };
+
+        let currentFormat = 'feed'; // 'feed' or 'story'
+        let currentTheme = 'dark'; // 'dark' or 'light'
+        let currentTitleSize = 22;
+        let currentBodySize = 17;
+
+        // Populate inputs on load
+        function initInputs() {
+            document.getElementById('input-header').value = initialText.header;
+            document.getElementById('input-body').value = initialText.body;
+        }
+
+        function handleInput() {
+            // Called when user types in input boxes
+            updateUI();
+        }
+
+        function setFormat(fmt) {
+            currentFormat = fmt;
+            updateUI();
+        }
+
+        function setTheme(theme) {
+            currentTheme = theme;
+            updateUI();
+        }
+
+        function setTitleSize(size) {
+            currentTitleSize = size;
+            document.getElementById('title-size-display').innerText = size + 'px';
+            updateUI();
+        }
+
+        function setBodySize(size) {
+            currentBodySize = size;
+            document.getElementById('body-size-display').innerText = size + 'px';
+            updateUI();
+        }
+
+        function updateUI() {
+            // Get Text from inputs (source of truth)
+            const headerText = document.getElementById('input-header').value;
+            const bodyText = document.getElementById('input-body').value;
+
+            // Update Preview Text
+            document.getElementById('header-text').innerText = headerText;
+            document.getElementById('body-text').innerText = bodyText;
+            
+            // Apply Font Sizes
+            document.getElementById('header-text').style.fontSize = currentTitleSize + 'px';
+            document.getElementById('body-text').style.fontSize = currentBodySize + 'px';
+
+            // Update Format Buttons
+            ['feed', 'story'].forEach(fmt => {
+                const btn = document.getElementById(`btn-fmt-${fmt}`);
+                if (fmt === currentFormat) {
+                    btn.classList.remove('bg-gray-700');
+                    btn.classList.add('bg-blue-600');
+                } else {
+                    btn.classList.add('bg-gray-700');
+                    btn.classList.remove('bg-blue-600');
+                }
+            });
+
+            // Update Theme Buttons
+            ['dark', 'light'].forEach(t => {
+                const btn = document.getElementById(`btn-theme-${t}`);
+                if (t === currentTheme) {
+                    btn.classList.remove('bg-gray-700');
+                    btn.classList.add('bg-blue-600');
+                } else {
+                    btn.classList.add('bg-gray-700');
+                    btn.classList.remove('bg-blue-600');
+                }
+            });
+
+            // Update Ad Container Dimensions (Aspect Ratio)
+            const container = document.getElementById('ad-container');
+            if (currentFormat === 'feed') {
+                container.style.aspectRatio = '4/5';
+                container.style.maxWidth = '400px'; 
+            } else {
+                container.style.aspectRatio = '9/16';
+                container.style.maxWidth = '320px'; 
+            }
+
+            // Update Theme Styles
+            const elements = {
+                container: document.getElementById('ad-container'),
+                statusBar: document.getElementById('status-bar'),
+                header: document.getElementById('notes-header'),
+                body: document.getElementById('notes-body'),
+                footer: document.getElementById('notes-footer'),
+                headerText: document.getElementById('header-text'),
+                bodyText: document.getElementById('body-text')
+            };
+
+            if (currentTheme === 'dark') {
+                elements.container.className = `relative w-full shadow-2xl overflow-hidden notes-container flex flex-col transition-all duration-500 border-4 border-gray-800 rounded-[2rem] bg-black`;
+                elements.statusBar.className = `h-8 w-full shrink-0 bg-black`;
+                elements.header.className = `flex items-center justify-between px-6 py-2 shrink-0 bg-black`;
+                elements.body.className = `px-6 pt-4 pb-12 overflow-y-auto no-scrollbar flex-1 bg-black`;
+                elements.footer.className = `h-12 w-full shrink-0 flex items-center justify-center gap-12 text-gray-500 bg-black`;
+                
+                elements.headerText.className = `note-header mb-6 tracking-tight uppercase text-white`;
+                elements.bodyText.className = `note-content font-normal leading-relaxed text-[#F2F2F7]`; // Off-white
+            } else {
+                // Light Mode
+                elements.container.className = `relative w-full shadow-2xl overflow-hidden notes-container flex flex-col transition-all duration-500 border-4 border-gray-300 rounded-[2rem] bg-white`;
+                elements.statusBar.className = `h-8 w-full shrink-0 bg-white`;
+                elements.header.className = `flex items-center justify-between px-6 py-2 shrink-0 bg-white`;
+                elements.body.className = `px-6 pt-4 pb-12 overflow-y-auto no-scrollbar flex-1 bg-white`;
+                elements.footer.className = `h-12 w-full shrink-0 flex items-center justify-center gap-12 text-gray-400 bg-white`;
+                
+                // Color updates here:
+                elements.headerText.className = `note-header mb-6 tracking-tight uppercase text-[#1C1C1E]`;
+                elements.bodyText.className = `note-content font-normal leading-relaxed text-[#454545]`;
+            }
+            
+            // Re-apply font sizes
+            elements.headerText.style.fontSize = currentTitleSize + 'px';
+            elements.bodyText.style.fontSize = currentBodySize + 'px';
+        }
+
+        // Image Download Function
+        function downloadAd() {
+            const container = document.getElementById('ad-container');
+            
+            // 1. Temporarily strip "Phone" styling for export
+            const originalBorder = container.style.borderWidth;
+            const originalRadius = container.style.borderRadius;
+            const originalShadow = container.style.boxShadow;
+            const originalTransition = container.style.transition;
+            
+            // Force clean rectangular look
+            container.style.borderWidth = '0';
+            container.style.borderRadius = '0';
+            container.style.boxShadow = 'none';
+            container.style.transition = 'none'; // Prevent animation glitch during capture
+
+            // Use scale: 3 for high resolution (approx 1200px width)
+            html2canvas(container, {
+                scale: 3,
+                backgroundColor: null,
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `bearbottom-note-ad-${currentFormat}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // 2. Restore "Phone" styling for preview
+                // We use setTimeout to ensure the paint cycle finishes
+                setTimeout(() => {
+                    container.style.borderWidth = ''; // Resets to CSS class value
+                    container.style.borderRadius = ''; // Resets to CSS class value
+                    container.style.boxShadow = '';
+                    container.style.transition = '';
+                }, 50);
+            });
+        }
+
+        // Initialize
+        initInputs();
+        updateUI();
+    </script>
+</body>
+</html>
