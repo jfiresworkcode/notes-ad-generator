@@ -158,14 +158,25 @@
                     <input type="text" id="input-header" oninput="handleInput()" class="w-full bg-gray-800 text-white text-sm p-3 rounded-lg border border-white/10 focus:border-blue-500 focus:outline-none placeholder-gray-600 transition" placeholder="Enter header text...">
                 </div>
 
-                <div>
+                <div class="mb-4">
                     <label class="text-xs text-gray-500 mb-1 block uppercase font-semibold">Body Text</label>
                     <textarea id="input-body" oninput="handleInput()" rows="8" class="w-full bg-gray-800 text-white text-sm p-3 rounded-lg border border-white/10 focus:border-blue-500 focus:outline-none placeholder-gray-600 transition resize-y" placeholder="Enter body text..."></textarea>
                 </div>
             </div>
+            
+            <!-- Footer Options Toggle -->
+            <div class="mb-4 pt-4 border-t border-white/20">
+                 <label class="flex items-center justify-between cursor-pointer group">
+                     <span class="text-sm text-gray-300 font-medium group-hover:text-white transition">Show Bottom Toolbar</span>
+                     <div class="relative">
+                         <input type="checkbox" id="footer-toggle" onchange="toggleFooter(this.checked)" checked class="sr-only peer">
+                         <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                     </div>
+                 </label>
+             </div>
 
              <!-- Download Button -->
-             <div class="mt-6 pt-6 border-t border-white/20">
+             <div class="mt-4 pt-4 border-t border-white/20">
                 <button onclick="downloadAd()" class="w-full py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold shadow-lg transition flex items-center justify-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -282,6 +293,15 @@
             currentBodySize = size;
             document.getElementById('body-size-display').innerText = size + 'px';
             updateUI();
+        }
+        
+        function toggleFooter(show) {
+            const footer = document.getElementById('notes-footer');
+            if (show) {
+                footer.style.display = 'flex';
+            } else {
+                footer.style.display = 'none';
+            }
         }
 
         function updateUI() {
